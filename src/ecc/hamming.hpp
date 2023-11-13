@@ -17,6 +17,6 @@ class ECCMethod_Hamming : public ECCMethod {
 
     uint32_t DataWidth() override;
     uint32_t ECCWidth() override;
-    std::vector<bool> ConstructECC(std::vector<bool>& data) override;
-    ECC_DETECTION_E CheckAndCorrect(std::vector<bool>& data, std::vector<bool>& ecc) override;
+    void ConstructECC(std::vector<bool>& data, std::vector<bool>& ecc) override;
+    ECC_DETECTION CheckAndCorrect(std::vector<bool>& data, std::vector<bool>& ecc) override;
 };

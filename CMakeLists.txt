@@ -12,7 +12,7 @@ set(INCLUDES
 )
 
 set(SOURCES
-    src/ecc/bch.cpp
+    # src/ecc/bch.cpp
     src/ecc/hamming.cpp
 
     src/util/noise.c

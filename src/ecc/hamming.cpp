@@ -72,6 +72,7 @@ ECC_DETECTION ECCMethod_Hamming::CheckAndCorrect(std::vector<bool>& data, std::v
     uint8_t syndrome = 0x00;
     for (uint8_t i = 0; i < ECCWidth() - 1; i++) {
         syndrome |= (ecc[i] != check_ecc[i]) << i;
+        // printf("syndrome %hhu: %c\n", i, ((ecc[i] != check_ecc[i]) << i) ? '1' : '0');
     }
     bool total_parity = false;
     for (uint8_t i = 0; i < DataWidth(); i++) {
@@ -98,17 +99,19 @@ ECC_DETECTION ECCMethod_Hamming::CheckAndCorrect(std::vector<bool>& data, std::v
     }
     // single bit error via syndrome
     uint8_t ecc_bit_skip = 0;
+    uint8_t syndrome_bits_set = 0;
     for (uint8_t i = 0; i < ECCWidth() - 1; i++) {
         if ((syndrome >> i) & 0b1) {
             ecc_bit_skip = i;
+            syndrome_bits_set++;
         }
     }
-    ecc_bit_skip++;
-    if (ecc_bit_skip == 1) {
+    if (syndrome_bits_set == 1) {
         // parity bit correction
         ecc[ecc_bit_skip] = !ecc[ecc_bit_skip];
     } else {
         // use parity position sum (syndrome)
+        ecc_bit_skip++;
         data[syndrome - 1 - ecc_bit_skip] = !data[syndrome - 1 - ecc_bit_skip];
     }
     return ECC_DETECTION_CORRECTED;

@@ -25,8 +25,8 @@ int main()
         FAIL_MODE_RANDOM_BURST,
     };
 
-    const FAIL_MODE fail_mode = FAIL_MODE_RANDOM_BURST;
-    const uint32_t fail_count = 3;
+    const FAIL_MODE fail_mode = FAIL_MODE_RANDOM;
+    const uint32_t fail_count = 1;
 
     const bool full_run = false;
     const uint64_t random_tests = 10000;
@@ -72,9 +72,8 @@ int main()
         ecc[i] = 0;
     }
 
-    //TODO can improve injection code to be better
     if (full_run) {
-        //TODO
+        //TODO full run actually required?
         assert(0);
         printf("unimplemented\n");
         exit(-1);
@@ -184,6 +183,9 @@ int main()
                     stats.detection_ok++;
                     if (print_tests) {
                         printf("detection: ok\n");
+                        if (fail_count > 0) {
+                            printf("completely silent corruption\n");
+                        }
                     }
                 } break;
                 case ECC_DETECTION_CORRECTED: {

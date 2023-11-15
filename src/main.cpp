@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "ecc/ecc.hpp"
+#include "ecc/bch.hpp"
 #include "ecc/hamming.hpp"
 
 #include "util/noise.h"

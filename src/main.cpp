@@ -21,23 +21,23 @@ int main()
 
     enum FAIL_MODE {
         FAIL_MODE_NONE = 0,
-        FAIL_MODE_1BIT,
-        FAIL_MODE_2BIT,
-        FAIL_MODE_2BIT_BURST,
-        FAIL_MODE_3BIT,
-        FAIL_MODE_3BIT_BURST,
+        FAIL_MODE_RANDOM,
+        FAIL_MODE_RANDOM_BURST,
     };
 
-    const FAIL_MODE fail_mode = FAIL_MODE_1BIT;
+    const FAIL_MODE fail_mode = FAIL_MODE_RANDOM_BURST;
+    const uint32_t fail_count = 3;
 
     const bool full_run = false;
-    const uint64_t random_tests = 1;
+    const uint64_t random_tests = 10000;
 
     ECCMethod* method = new ECCMethod_Hamming();
 
     uint64_t seed = 42;
 
     ///////
+
+    assert(fail_count <= 6);
 
     uint64_t rctr = 0; // random ctr
 
@@ -47,10 +47,12 @@ int main()
         uint64_t detection_ok;
         uint64_t detection_corrected;
         uint64_t detection_uncorrectable;
+        uint64_t false_corrections;
     } stats = (ecc_stats){
         .detection_ok = 0,
         .detection_corrected = 0,
         .detection_uncorrectable = 0,
+        .false_corrections = 0,
     };
 
     std::vector<bool> data;
@@ -70,6 +72,7 @@ int main()
         ecc[i] = 0;
     }
 
+    //TODO can improve injection code to be better
     if (full_run) {
         //TODO
         assert(0);
@@ -90,52 +93,36 @@ int main()
                 printf("\n");
             }
             // inject bit faults
+            uint32_t fail_positions[6];
+            uint32_t total_positions = data.size() + ecc.size();
+            uint32_t generated_bits = 0;
+
             switch (fail_mode) {
                 case FAIL_MODE_NONE: {
                     //pass
                 } break;
-                case FAIL_MODE_1BIT: {
-                    uint32_t total_positions = data.size() + ecc.size();
+                case FAIL_MODE_RANDOM: {
+                    while (generated_bits < fail_count) {
+                        uint32_t flip_pos = noise_get_u64n(rctr++, seed, total_positions);
+                        bool unique = true;
+                        for (uint32_t test_bit = 0; test_bit < generated_bits; test_bit++) {
+                            if (fail_positions[test_bit] == flip_pos) {
+                                unique = false;
+                            }
+                        }
+                        if (!unique) {
+                            continue;
+                        }
+                        fail_positions[generated_bits++] = flip_pos;
+                    }
+                } break;
+                case FAIL_MODE_RANDOM_BURST: {
+                    total_positions -= fail_count - 1;
                     uint32_t flip_pos = noise_get_u64n(rctr++, seed, total_positions);
-                    if (flip_pos < data.size()) {
-                        data[flip_pos] = !data[flip_pos];
-                    } else {
-                        ecc[flip_pos - data.size()] = !ecc[flip_pos - data.size()];
+                    while (generated_bits < fail_count) {
+                        fail_positions[generated_bits] = flip_pos + generated_bits;
+                        generated_bits++;
                     }
-                    if (print_tests) {
-                        if (flip_pos >= data.size()) {
-                            printf(" ");
-                        }
-                        for (uint32_t i = 0; i < flip_pos; i++) {
-                            printf(" ");
-                        }
-                        printf("^");
-                        printf("\n");
-                    }
-                } break;
-                case FAIL_MODE_2BIT: {
-                    //TODO
-                    assert(0);
-                    printf("unimplemented\n");
-                    exit(-1);
-                } break;
-                case FAIL_MODE_2BIT_BURST: {
-                    //TODO
-                    assert(0);
-                    printf("unimplemented\n");
-                    exit(-1);
-                } break;
-                case FAIL_MODE_3BIT: {
-                    //TODO
-                    assert(0);
-                    printf("unimplemented\n");
-                    exit(-1);
-                } break;
-                case FAIL_MODE_3BIT_BURST: {
-                    //TODO
-                    assert(0);
-                    printf("unimplemented\n");
-                    exit(-1);
                 } break;
                 default: {
                     assert(0);
@@ -143,8 +130,55 @@ int main()
                     exit(-1);
                 } break;
             }
+
+            // flip the bits
+            for (uint32_t flipping = 0; flipping < generated_bits; flipping++) {
+                uint32_t flip_pos = fail_positions[flipping];
+                if (flip_pos < data.size()) {
+                    data[flip_pos] = !data[flip_pos];
+                } else {
+                    ecc[flip_pos - data.size()] = !ecc[flip_pos - data.size()];
+                }
+            }
+
+            // print flips if wanted
+            for (uint32_t bit_pos = 0; bit_pos < (data.size() + ecc.size()); bit_pos++) {
+                if (print_tests && bit_pos == data.size()) {
+                    printf(" ");
+                }
+                bool found = false;
+                for (uint32_t test_bit = 0; test_bit < generated_bits; test_bit++) {
+                    if (fail_positions[test_bit] == bit_pos) {
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found) {
+                    if (print_tests) {
+                        printf(" ");
+                    }
+                    continue;
+                }
+                if (print_tests) {
+                    printf("|");
+                }
+            }
+            if (print_tests) {
+                printf("\n");
+            }
+
             // check and correct
             ECC_DETECTION detection = method->CheckAndCorrect(data, ecc);
+
+            // print result
+            if (print_tests) {
+                print_bits(data);
+                printf(" ");
+                print_bits(ecc);
+                printf("\n");
+            }
+
+            // print detection result
             switch (detection) {
                 case ECC_DETECTION_OK: {
                     stats.detection_ok++;
@@ -165,7 +199,10 @@ int main()
                         correct_correction &= ecc_check[i] == ecc[i];
                     }
                     if (!correct_correction) {
-                        printf("correction failed\n");
+                        stats.false_corrections++;
+                        if (print_tests) {
+                            printf("correction failed\n");
+                        }
                     }
                 } break;
                 case ECC_DETECTION_UNCORRECTABLE: {
@@ -180,12 +217,6 @@ int main()
                     exit(-1);
                 } break;
             }
-            if (print_tests) {
-                print_bits(data);
-                printf(" ");
-                print_bits(ecc);
-                printf("\n");
-            }
         }
     }
 
@@ -194,7 +225,7 @@ int main()
     }
     printf("stats:\n");
     printf("detection ok: %lu\n", stats.detection_ok);
-    printf("detection corrected: %lu\n", stats.detection_corrected);
+    printf("detection corrected (false corrections therein): %lu (%lu)\n", stats.detection_corrected, stats.false_corrections);
     printf("detection uncorrectable: %lu\n", stats.detection_uncorrectable);
 
     printf("done\n");

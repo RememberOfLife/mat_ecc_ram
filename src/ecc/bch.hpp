@@ -3,15 +3,19 @@
 #include <cstdint>
 #include <vector>
 
+#include "bch_codec/bch_codec.h"
+
 #include "ecc.hpp"
 
 class ECCMethod_BCH : public ECCMethod {
-    // BCH?
+    // generic BCH wrapper
 
   private:
 
+    bch_control* ctrl;
+
     uint32_t data_width;
-    uint32_t ecc_width;
+    uint32_t ctrl_data_width_bytes;
     uint32_t correction_capability;
 
   public:

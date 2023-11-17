@@ -27,12 +27,12 @@ int main()
     };
 
     const FAIL_MODE fail_mode = FAIL_MODE_RANDOM;
-    const uint32_t fail_count = 1;
+    const uint32_t fail_count = 2;
 
     const bool full_run = false;
-    const uint64_t random_tests = 10000;
+    const uint64_t random_tests = 1;
 
-    ECCMethod* method = new ECCMethod_Hamming();
+    ECCMethod* method = new ECCMethod_BCH(128, 2);
 
     uint64_t seed = 42;
 
@@ -93,7 +93,7 @@ int main()
                 printf("\n");
             }
             // inject bit faults
-            uint32_t fail_positions[6];
+            uint32_t fail_positions[fail_count];
             uint32_t total_positions = data.size() + ecc.size();
             uint32_t generated_bits = 0;
 
@@ -155,7 +155,7 @@ int main()
                 }
                 if (!found) {
                     if (print_tests) {
-                        printf(" ");
+                        printf("-");
                     }
                     continue;
                 }
@@ -184,7 +184,7 @@ int main()
                     stats.detection_ok++;
                     if (print_tests) {
                         printf("detection: ok\n");
-                        if (fail_count > 0) {
+                        if (fail_mode != FAIL_MODE_NONE && fail_count > 0) {
                             printf("completely silent corruption\n");
                         }
                     }

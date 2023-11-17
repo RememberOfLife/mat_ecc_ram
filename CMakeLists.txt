@@ -8,10 +8,14 @@ set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 
 set(INCLUDES
+    lib
+    
     src
 )
 
 set(SOURCES
+    lib/bch_codec/bch_codec.c
+
     src/ecc/bch.cpp
     src/ecc/hamming.cpp
 

@@ -32,7 +32,8 @@ int main()
     const bool full_run = false;
     const uint64_t random_tests = 1;
 
-    ECCMethod* method = new ECCMethod_BCH(128, 2);
+    // ECCMethod* method = new ECCMethod_Hamming();
+    ECCMethod* method = new ECCMethod_BCH(16, 2);
 
     uint64_t seed = 42;
 
@@ -55,6 +56,8 @@ int main()
         .detection_uncorrectable = 0,
         .false_corrections = 0,
     };
+
+    printf("datawidth: %u ; eccwidth: %u\n", method->DataWidth(), method->ECCWidth());
 
     std::vector<bool> data;
     data.resize(method->DataWidth());
@@ -84,6 +87,7 @@ int main()
             method->ConstructECC(data, ecc);
             data_check = data;
             ecc_check = ecc;
+            // print original data and ecc
             if (print_tests) {
                 printf("\n\n");
                 printf("data ecc:\n");
@@ -132,6 +136,9 @@ int main()
             }
 
             // flip the bits
+            if (print_tests && generated_bits > 0) {
+                printf("injecting %u error%s at:", generated_bits, generated_bits > 1 ? "s" : "");
+            }
             for (uint32_t flipping = 0; flipping < generated_bits; flipping++) {
                 uint32_t flip_pos = fail_positions[flipping];
                 if (flip_pos < data.size()) {
@@ -139,6 +146,15 @@ int main()
                 } else {
                     ecc[flip_pos - data.size()] = !ecc[flip_pos - data.size()];
                 }
+                if (print_tests && generated_bits > 0) {
+                    printf(" %u", flip_pos);
+                    if (flipping + 1 < generated_bits) {
+                        printf(",");
+                    }
+                }
+            }
+            if (print_tests && generated_bits > 0) {
+                printf("\n");
             }
 
             // print flips if wanted
@@ -164,6 +180,14 @@ int main()
                 }
             }
             if (print_tests) {
+                printf("\n");
+            }
+
+            // print with errors
+            if (print_tests) {
+                print_bits(data);
+                printf(" ");
+                print_bits(ecc);
                 printf("\n");
             }
 

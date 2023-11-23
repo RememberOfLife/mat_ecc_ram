@@ -18,8 +18,6 @@ void print_bits(std::vector<bool>& bits)
 
 int main()
 {
-    //TODO is the correction dependant on the actual data? if so, how to do a full run actually?
-
     enum FAIL_MODE {
         FAIL_MODE_NONE = 0,
         FAIL_MODE_RANDOM,
@@ -83,19 +81,11 @@ int main()
         exit(-1);
     } else {
         for (uint64_t t = 0; t < random_tests; t++) {
+            printf("\n\n");
             // rebuild ecc
             method->ConstructECC(data, ecc);
             data_check = data;
             ecc_check = ecc;
-            // print original data and ecc
-            if (print_tests) {
-                printf("\n\n");
-                printf("data ecc:\n");
-                print_bits(data);
-                printf(" ");
-                print_bits(ecc);
-                printf("\n");
-            }
             // inject bit faults
             uint32_t fail_positions[fail_count];
             uint32_t total_positions = data.size() + ecc.size();
@@ -157,6 +147,14 @@ int main()
                 printf("\n");
             }
 
+            // print original data and ecc
+            if (print_tests) {
+                print_bits(data_check);
+                printf(" ");
+                print_bits(ecc_check);
+                printf("\n");
+            }
+
             // print flips if wanted
             for (uint32_t bit_pos = 0; bit_pos < (data.size() + ecc.size()); bit_pos++) {
                 if (print_tests && bit_pos == data.size()) {
@@ -183,6 +181,8 @@ int main()
                 printf("\n");
             }
 
+            std::vector<bool> data_fault = data;
+            std::vector<bool> ecc_fault = ecc;
             // print with errors
             if (print_tests) {
                 print_bits(data);
@@ -193,6 +193,31 @@ int main()
 
             // check and correct
             ECC_DETECTION detection = method->CheckAndCorrect(data, ecc);
+
+            // print correction flips if wanted
+            for (uint32_t bit_pos = 0; bit_pos < (data_fault.size() + ecc_fault.size()); bit_pos++) {
+                if (print_tests && bit_pos == data_fault.size()) {
+                    printf(" ");
+                }
+                bool flipped = false;
+                if (bit_pos < data_fault.size()) {
+                    flipped = data[bit_pos] != data_fault[bit_pos];
+                } else {
+                    flipped = ecc[bit_pos - data_fault.size()] != ecc_fault[bit_pos - data_fault.size()];
+                }
+                if (!flipped) {
+                    if (print_tests) {
+                        printf("-");
+                    }
+                    continue;
+                }
+                if (print_tests) {
+                    printf("|");
+                }
+            }
+            if (print_tests) {
+                printf("\n");
+            }
 
             // print result
             if (print_tests) {

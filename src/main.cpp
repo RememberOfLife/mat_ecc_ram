@@ -26,14 +26,14 @@ int main()
     };
 
     const FAIL_MODE fail_mode = FAIL_MODE_RANDOM;
-    const uint32_t fail_count = 0;
+    const uint32_t fail_count = 1;
 
     const bool full_run = false;
     const uint64_t random_tests = 1;
 
     // ECCMethod* method = new ECCMethod_Hamming();
     // ECCMethod* method = new ECCMethod_BCH(128, 2);
-    ECCMethod* method = new ECCMethod_Hsiao(ECCMethod_Hsiao::HSIAO_LENGTH_64);
+    ECCMethod* method = new ECCMethod_Hsiao(ECCMethod_Hsiao::HSIAO_LENGTH_8, true);
 
     uint64_t seed = 42;
 
@@ -83,7 +83,9 @@ int main()
         exit(-1);
     } else {
         for (uint64_t t = 0; t < random_tests; t++) {
-            printf("\n\n");
+            if (print_tests) {
+                printf("\n\n");
+            }
             // rebuild ecc
             method->ConstructECC(data, ecc);
             data_check = data;

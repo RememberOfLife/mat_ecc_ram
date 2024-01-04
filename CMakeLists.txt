@@ -18,6 +18,7 @@ set(SOURCES
 
     src/ecc/bch.cpp
     src/ecc/hamming.cpp
+    src/ecc/hsiao.cpp
 
     src/util/noise.c
 

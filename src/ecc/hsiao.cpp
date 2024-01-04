@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <cassert>
 #include <cstdint>
 #include <cstdio>
@@ -119,7 +120,7 @@ ECC_DETECTION ECCMethod_Hsiao::CheckAndCorrect(std::vector<bool>& data, std::vec
     bool zero = true;
     int mmcnt = 0;
     for (int ei = 0; ei < k; ei++) {
-        bool match = ecc[ei] == syndrome[ei];
+        bool match = (ecc[ei] == syndrome[ei]);
         if (!match) {
             zero = false;
             mmcnt++;
@@ -139,7 +140,39 @@ ECC_DETECTION ECCMethod_Hsiao::CheckAndCorrect(std::vector<bool>& data, std::vec
         return ECC_DETECTION_UNCORRECTABLE;
     }
     // correct error at syndrome
-    //TODO
-
+    // bitwise conjuction of all the rows containing missmatches in the syndrome, remaining bits are positions to flip
+    std::vector<bool> row_conjuction(n, true);
+    if (mmcnt == 1) {
+        // fail is within ecc bits, unset all non parity bits
+        std::replace(row_conjuction.begin(), row_conjuction.begin() + d, true, false);
+    }
+    for (int ei = 0; ei < k; ei++) {
+        if (ecc[ei] != syndrome[ei]) {
+            for (int ci = 0; ci < n; ci++) {
+                row_conjuction[ci] = row_conjuction[ci] && parity_matrix_by_rows[ei][ci];
+            }
+        }
+    }
+    for (int ci = 0; ci < n; ci++) {
+        if (row_conjuction[ci] == true) {
+            if (ci < n - k) {
+                data[ci] = !data[ci];
+            } else {
+                ecc[ci - d] = !ecc[ci - d];
+            }
+            if (!debug_print) {
+                break;
+            }
+        }
+        if (debug_print) {
+            if (ci == n - k) {
+                printf(" ");
+            }
+            printf("%c", row_conjuction[ci] ? '1' : '0');
+        }
+    }
+    if (debug_print) {
+        printf("\n");
+    }
     return ECC_DETECTION_CORRECTED;
 }

@@ -33,7 +33,7 @@ int main()
 
     // ECCMethod* method = new ECCMethod_Hamming();
     // ECCMethod* method = new ECCMethod_BCH(128, 2);
-    ECCMethod* method = new ECCMethod_Hsiao(ECCMethod_Hsiao::HSIAO_LENGTH_8, true);
+    ECCMethod* method = new ECCMethod_Hsiao(ECCMethod_Hsiao::HSIAO_LENGTH_64);
 
     uint64_t seed = 42;
 

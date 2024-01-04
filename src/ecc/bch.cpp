@@ -97,7 +97,6 @@ ECC_DETECTION ECCMethod_BCH::CheckAndCorrect(std::vector<bool>& data, std::vecto
         return ECC_DETECTION_OK;
     }
 
-    //REMOVE
     // printf("detected %i correctable error%s at:", err_num, err_num > 1 ? "s" : "");
     // for (int i = 0; i < err_num; i++) {
     //     printf(" %u", ((err_locations[i] / 8) * 8) + (7 - (err_locations[i] % 8)));
@@ -111,7 +110,7 @@ ECC_DETECTION ECCMethod_BCH::CheckAndCorrect(std::vector<bool>& data, std::vecto
     correct_bch(ctrl, packed_data.data(), ctrl_data_width_bytes, err_locations.data(), err_num);
     // recalc ecc part to fix possible ecc faults
     packed_ecc.assign(ctrl->ecc_bytes, 0);
-    encode_bch(ctrl, packed_data.data(), ctrl_data_width_bytes, packed_ecc.data()); // TODO dont just recompute..
+    encode_bch(ctrl, packed_data.data(), ctrl_data_width_bytes, packed_ecc.data()); // could flip instead of recomputing
 
     // output packed and corrected inputs
     for (uint32_t i = 0; i < data_width; i++) {

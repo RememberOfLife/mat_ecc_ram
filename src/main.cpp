@@ -6,6 +6,7 @@
 #include "ecc/ecc.hpp"
 #include "ecc/bch.hpp"
 #include "ecc/hamming.hpp"
+#include "ecc/hsiao.hpp"
 
 #include "util/noise.h"
 
@@ -25,13 +26,14 @@ int main()
     };
 
     const FAIL_MODE fail_mode = FAIL_MODE_RANDOM;
-    const uint32_t fail_count = 2;
+    const uint32_t fail_count = 0;
 
     const bool full_run = false;
     const uint64_t random_tests = 1;
 
     // ECCMethod* method = new ECCMethod_Hamming();
-    ECCMethod* method = new ECCMethod_BCH(16, 2);
+    // ECCMethod* method = new ECCMethod_BCH(128, 2);
+    ECCMethod* method = new ECCMethod_Hsiao(ECCMethod_Hsiao::HSIAO_LENGTH_64);
 
     uint64_t seed = 42;
 

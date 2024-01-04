@@ -2,3 +2,5 @@
 /.vscode
 /build
 /res
+**/__pycache__
+/scripts

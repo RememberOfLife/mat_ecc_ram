@@ -18,8 +18,8 @@ ECCMethod_BCH::ECCMethod_BCH(uint32_t data_width, uint32_t correction_capability
     int m = ceil(log2(data_width + 1));
     ctrl = init_bch(m, correction_capability, 0);
     if (ctrl == NULL) {
-        assert(0);
         printf("failed to initialize bch control\n");
+        assert(0);
         exit(-1);
     }
     // ctrl_data_width_bytes = (ctrl->n - ctrl->ecc_bits + 7) / 8;
@@ -88,8 +88,8 @@ ECC_DETECTION ECCMethod_BCH::CheckAndCorrect(std::vector<bool>& data, std::vecto
     int err_num = decode_bch(ctrl, packed_data.data(), ctrl_data_width_bytes, packed_ecc.data(), NULL, NULL, err_locations.data());
 
     if (err_num == -EINVAL) {
-        assert(0);
         printf("bch message decoding parameters invalid\n");
+        assert(0);
         exit(-1);
     } else if (err_num == -EBADMSG) {
         return ECC_DETECTION_UNCORRECTABLE;

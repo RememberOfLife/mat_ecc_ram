@@ -33,7 +33,7 @@ int main()
 
     // ECCMethod* method = new ECCMethod_Hamming();
     // ECCMethod* method = new ECCMethod_BCH(128, 2);
-    ECCMethod* method = new ECCMethod_Hsiao(ECCMethod_Hsiao::HSIAO_LENGTH_64);
+    ECCMethod* method = new ECCMethod_Hsiao(64, 0);
 
     uint64_t seed = 42;
 
@@ -78,8 +78,8 @@ int main()
 
     if (full_run) {
         //TODO full run actually required?
-        assert(0);
         printf("unimplemented\n");
+        assert(0);
         exit(-1);
     } else {
         for (uint64_t t = 0; t < random_tests; t++) {
@@ -123,8 +123,8 @@ int main()
                     }
                 } break;
                 default: {
-                    assert(0);
                     printf("invalid fail mode\n");
+                    assert(0);
                     exit(-1);
                 } break;
             }
@@ -268,8 +268,8 @@ int main()
                     }
                 } break;
                 default: {
-                    assert(0);
                     printf("invalid detection\n");
+                    assert(0);
                     exit(-1);
                 } break;
             }

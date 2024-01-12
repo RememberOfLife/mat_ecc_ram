@@ -26,14 +26,14 @@ int main()
     };
 
     const FAIL_MODE fail_mode = FAIL_MODE_RANDOM;
-    const uint32_t fail_count = 1;
+    const uint32_t fail_count = 5;
 
     const bool full_run = false;
-    const uint64_t random_tests = 1;
+    const uint64_t random_tests = 10000;
 
     // ECCMethod* method = new ECCMethod_Hamming();
-    // ECCMethod* method = new ECCMethod_BCH(128, 2);
-    ECCMethod* method = new ECCMethod_Hsiao(64, 0);
+    // ECCMethod* method = new ECCMethod_BCH(32, 5);
+    ECCMethod* method = new ECCMethod_Hsiao(128, 16);
 
     uint64_t seed = 42;
 

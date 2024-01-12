@@ -127,6 +127,7 @@ ECC_DETECTION ECCMethod_Hsiao::CheckAndCorrect(std::vector<bool>& data, std::vec
         }
     }
     bool corrected = false;
+    bool double_corrected = false;
     for (int ci = 0; ci < n; ci++) {
         if (row_conjuction[ci] == true) {
             if (ci < n - k) {
@@ -134,10 +135,13 @@ ECC_DETECTION ECCMethod_Hsiao::CheckAndCorrect(std::vector<bool>& data, std::vec
             } else {
                 ecc[ci - d] = !ecc[ci - d];
             }
-            corrected = true;
-            if (!debug_print) {
-                break;
+            if (corrected) {
+                double_corrected = true;
+                if (!debug_print) {
+                    break;
+                }
             }
+            corrected = true;
         }
         if (debug_print) {
             if (ci == n - k) {
@@ -149,8 +153,9 @@ ECC_DETECTION ECCMethod_Hsiao::CheckAndCorrect(std::vector<bool>& data, std::vec
     if (debug_print) {
         printf("\n");
     }
-    if (!corrected) {
+    if (!corrected || double_corrected) {
         // if the syndrom was invalid and did not point to a correctable failure, we can detect this because no bit was flipped
+        // or if the syndrome pointed multiple errors, that is also incorrect
         return ECC_DETECTION_UNCORRECTABLE;
     }
     return ECC_DETECTION_CORRECTED;

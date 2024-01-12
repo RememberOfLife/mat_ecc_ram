@@ -8,16 +8,6 @@
 class ECCMethod_Hsiao : public ECCMethod {
     // SECDED with hsiao hamming
 
-  public:
-
-    enum HSIAO_LENGTH {
-        HSIAO_LENGTH_8 = 0,
-        HSIAO_LENGTH_32,
-        HSIAO_LENGTH_64,
-        HSIAO_LENGTH_128,
-        HSIAO_LENGTH_COUNT,
-    };
-
   private:
 
     bool debug_print;

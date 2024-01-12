@@ -268,7 +268,6 @@ ECCMethod_Hsiao::matrix ECCMethod_Hsiao::matrix_construction(int d, int k, bool 
 
 ECCMethod_Hsiao::matrix ECCMethod_Hsiao::matrix_construction_delta(int rows, int cols, int weight, bool debug_print)
 {
-    static int id = 0;
     // adapted for cpp from https://github.com/msvisser/memory-controller-generator
     // compute delta sub-matrix
     if (cols == 0) {

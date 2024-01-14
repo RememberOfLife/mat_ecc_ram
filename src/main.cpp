@@ -26,7 +26,7 @@ int main()
     };
 
     const FAIL_MODE fail_mode = FAIL_MODE_RANDOM;
-    const uint32_t fail_count = 5;
+    const uint32_t fail_count = 1;
 
     const bool full_run = false;
     const uint64_t random_tests = 10000;

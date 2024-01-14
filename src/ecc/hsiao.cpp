@@ -120,28 +120,29 @@ ECC_DETECTION ECCMethod_Hsiao::CheckAndCorrect(std::vector<bool>& data, std::vec
         std::replace(row_conjuction.begin(), row_conjuction.begin() + d, true, false);
     }
     for (int ei = 0; ei < k; ei++) {
-        if (ecc[ei] != syndrome[ei]) {
-            for (int ci = 0; ci < n; ci++) {
+        for (int ci = 0; ci < n; ci++) {
+            if (ecc[ei] != syndrome[ei]) {
                 row_conjuction[ci] = row_conjuction[ci] && parity_matrix_by_rows[ei][ci];
+            } else if (parity_matrix_by_rows[ei][ci] == 1) {
+                row_conjuction[ci] = 0; // we don't really need to do this, we could also just stop flipping after the first bit has been flipped, but this cleans up the conjuction so there is just the one bit left in the mask
             }
         }
     }
+    if (debug_print) {
+        printf("row conjunction (excluding impossible combinations):\n");
+    }
     bool corrected = false;
-    bool double_corrected = false;
     for (int ci = 0; ci < n; ci++) {
-        if (row_conjuction[ci] == true) {
+        if (row_conjuction[ci] == true && !corrected) {
             if (ci < n - k) {
                 data[ci] = !data[ci];
             } else {
                 ecc[ci - d] = !ecc[ci - d];
             }
-            if (corrected) {
-                double_corrected = true;
-                if (!debug_print) {
-                    break;
-                }
-            }
             corrected = true;
+            if (!debug_print) {
+                break;
+            }
         }
         if (debug_print) {
             if (ci == n - k) {
@@ -153,9 +154,8 @@ ECC_DETECTION ECCMethod_Hsiao::CheckAndCorrect(std::vector<bool>& data, std::vec
     if (debug_print) {
         printf("\n");
     }
-    if (!corrected || double_corrected) {
+    if (!corrected) {
         // if the syndrom was invalid and did not point to a correctable failure, we can detect this because no bit was flipped
-        // or if the syndrome pointed multiple errors, that is also incorrect
         return ECC_DETECTION_UNCORRECTABLE;
     }
     return ECC_DETECTION_CORRECTED;

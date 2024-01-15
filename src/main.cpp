@@ -1,6 +1,11 @@
 #include <cassert>
 #include <cmath>
+#include <cstdarg>
+#include <cstdint>
 #include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <ctime>
 #include <vector>
 
 #include "ecc/ecc.hpp"
@@ -10,6 +15,15 @@
 
 #include "util/noise.h"
 
+static void errorf(const char* fmt, ...)
+{
+    va_list args;
+    va_start(args, fmt);
+    vfprintf(stderr, fmt, args);
+    va_end(args);
+    exit(-1);
+}
+
 void print_bits(std::vector<bool>& bits)
 {
     for (const bool& b : bits) {
@@ -17,28 +31,73 @@ void print_bits(std::vector<bool>& bits)
     }
 }
 
-int main()
+int main(int argc, char** argv)
 {
+    // the settings we will set with clas
     enum FAIL_MODE {
         FAIL_MODE_NONE = 0,
         FAIL_MODE_RANDOM,
         FAIL_MODE_RANDOM_BURST,
     };
 
-    const FAIL_MODE fail_mode = FAIL_MODE_RANDOM;
-    const uint32_t fail_count = 1;
-
-    const bool full_run = false;
-    const uint64_t random_tests = 10000;
-
-    // ECCMethod* method = new ECCMethod_Hamming();
-    // ECCMethod* method = new ECCMethod_BCH(32, 5);
-    ECCMethod* method = new ECCMethod_Hsiao(128, 16);
-
+    FAIL_MODE fail_mode;
+    uint32_t fail_count;
+    uint64_t random_tests;
+    ECCMethod* method;
     uint64_t seed = 42;
 
+    // parse clas
+    if (argc < 6) {
+        errorf("usage: <fail_mode> <fail_count> <test_count> <ecc_method> <ecc_conf> [seed]\n");
+    }
+
+    const char* arg_fail_mode = argv[1];
+    const char* arg_fail_count = argv[2];
+    const char* arg_test_count = argv[3];
+    const char* arg_ecc_method = argv[4];
+    const char* arg_ecc_conf = argv[5];
+    const char* arg_seed = argc > 6 ? argv[6] : NULL;
+    bool debug_print = argc > 7;
+
+    if (strcmp(arg_fail_mode, "N") == 0) {
+        fail_mode = FAIL_MODE_NONE;
+    } else if (strcmp(arg_fail_mode, "R") == 0) {
+        fail_mode = FAIL_MODE_RANDOM;
+    } else if (strcmp(arg_fail_mode, "RB") == 0) {
+        fail_mode = FAIL_MODE_RANDOM_BURST;
+    } else {
+        errorf("unknown fail mode\n");
+    }
+
+    fail_count = strtoul(arg_fail_count, NULL, 10);
+
+    random_tests = strtoul(arg_test_count, NULL, 10);
+
+    {
+        int d;
+        int k;
+        int ec = sscanf(arg_ecc_conf, "%i/%i", &d, &k);
+        if (ec != 2) {
+            errorf("failed to read ecc conf\n");
+        }
+        if (strcmp(arg_ecc_method, "hamming") == 0) {
+            method = new ECCMethod_Hamming();
+        } else if (strcmp(arg_ecc_method, "bch") == 0) {
+            method = new ECCMethod_BCH(d, k);
+        } else if (strcmp(arg_ecc_method, "hsiao") == 0) {
+            method = new ECCMethod_Hsiao(d, k, debug_print);
+        } else {
+            errorf("unknown ecc method\n");
+        }
+    }
+
+    srand(time(NULL)); // quick and dirty randomness if no seed given
+    seed = arg_seed == NULL ? rand() : strtoull(arg_seed, NULL, 10);
+
+    // program begins
     ///////
 
+    bool full_run = false;
     assert(fail_count <= 6);
 
     uint64_t rctr = 0; // random ctr

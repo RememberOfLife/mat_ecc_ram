@@ -159,6 +159,7 @@ void* thread_work(void* arg)
     }
 
     for (uint64_t t = 0; ctrl.work_offset + t < ctrl.work_max; t++) {
+        uint64_t effective_bp_idx = ctrl.work_offset + t;
         if (print_tests) {
             printf("\n\n");
         } else if ((t & UINT16_MAX) == 0) {
@@ -179,7 +180,7 @@ void* thread_work(void* arg)
             } break;
             case FAIL_MODE_RANDOM: {
                 if (ctrl.full_run) {
-                    std::array<uint16_t, 8> bit_positions = bit_position_enumeration_idx_ncr(word_width, ctrl.fail_count, t);
+                    std::array<uint16_t, 8> bit_positions = bit_position_enumeration_idx_ncr(word_width, ctrl.fail_count, effective_bp_idx);
                     for (; generated_bits < ctrl.fail_count; generated_bits++) {
                         fail_positions[generated_bits] = bit_positions[generated_bits];
                     }
@@ -201,7 +202,7 @@ void* thread_work(void* arg)
             } break;
             case FAIL_MODE_RANDOM_BURST: {
                 if (ctrl.full_run) {
-                    std::array<uint16_t, 8> bit_positions = bit_position_enumeration_idx_burst(word_width, ctrl.fail_count, t);
+                    std::array<uint16_t, 8> bit_positions = bit_position_enumeration_idx_burst(word_width, ctrl.fail_count, effective_bp_idx);
                     for (; generated_bits < ctrl.fail_count; generated_bits++) {
                         fail_positions[generated_bits] = bit_positions[generated_bits];
                     }

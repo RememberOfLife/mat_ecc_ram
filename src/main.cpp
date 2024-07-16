@@ -127,6 +127,8 @@ struct thread_control {
     uint64_t work_progress;
     uint64_t work_max;
     ecc_stats stats;
+    std::vector<uint64_t> flip_occurence_counts;
+    std::vector<int64_t> flip_occurence_flip_avg_distances;
 };
 
 void* thread_work(void* arg)
@@ -140,6 +142,9 @@ void* thread_work(void* arg)
     uint32_t data_width = ctrl.method->DataWidth();
     uint32_t ecc_width = ctrl.method->ECCWidth();
     uint32_t word_width = data_width + ecc_width;
+
+    ctrl.flip_occurence_counts.resize(word_width, 0);
+    ctrl.flip_occurence_flip_avg_distances.resize(word_width, 0);
 
     std::vector<bool> data;
     data.resize(data_width);
@@ -307,6 +312,11 @@ void* thread_work(void* arg)
                     printf("-");
                 }
                 continue;
+            }
+            // add post fault occurence and avg flip distance
+            ctrl.flip_occurence_counts[bit_pos]++;
+            for (uint32_t fault_idx = 0; fault_idx < generated_bits; fault_idx++) {
+                ctrl.flip_occurence_flip_avg_distances[bit_pos] += (int64_t)bit_pos - (int64_t)fail_positions[fault_idx];
             }
             if (print_tests) {
                 printf("|");
@@ -500,6 +510,10 @@ int main(int argc, char** argv)
     }
 
     ecc_stats stats;
+    std::vector<uint64_t> flip_occurence_counts;
+    std::vector<int64_t> flip_occurence_flip_avg_distances;
+    flip_occurence_counts.resize(word_width, 0);
+    flip_occurence_flip_avg_distances.resize(word_width, 0);
 
     // collect
     for (int tid = 0; tid < threads.size(); tid++) {
@@ -508,6 +522,15 @@ int main(int argc, char** argv)
         stats.detection_corrected += threads[tid].stats.detection_corrected;
         stats.detection_uncorrectable += threads[tid].stats.detection_uncorrectable;
         stats.false_corrections += threads[tid].stats.false_corrections;
+        for (int bit_pos = 0; bit_pos < word_width; bit_pos++) {
+            flip_occurence_counts[bit_pos] += threads[tid].flip_occurence_counts[bit_pos];
+            flip_occurence_flip_avg_distances[bit_pos] += threads[tid].flip_occurence_flip_avg_distances[bit_pos];
+        }
+    }
+    if (stats.false_corrections > 0) {
+        for (int bit_pos = 0; bit_pos < word_width; bit_pos++) {
+            flip_occurence_flip_avg_distances[bit_pos] /= (int64_t)fail_count * (int64_t)stats.false_corrections;
+        }
     }
 
     // report results
@@ -521,6 +544,21 @@ int main(int argc, char** argv)
     printf("detection corrected (false corrections therein): %lu (%lu)\n", stats.detection_corrected, stats.false_corrections);
     printf("detection uncorrectable: %lu\n", stats.detection_uncorrectable);
 
+    printf("\n");
+    printf("post fault flip occurences:\n");
+    for (int bit_pos = 0; bit_pos < word_width; bit_pos++) {
+        printf(" %lu", flip_occurence_counts[bit_pos]);
+    }
+    printf("\n");
+
+    printf("\n");
+    printf("flip occurence avg flip distance:\n");
+    for (int bit_pos = 0; bit_pos < word_width; bit_pos++) {
+        printf(" %ld", flip_occurence_flip_avg_distances[bit_pos]);
+    }
+    printf("\n");
+
+    printf("\n");
     printf("done\n");
     return 0;
 }

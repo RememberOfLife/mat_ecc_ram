@@ -10,6 +10,7 @@
 #include <pthread.h>
 #include <thread>
 #include <unistd.h>
+#include <unordered_set>
 #include <vector>
 
 #include "ecc/ecc.hpp"
@@ -383,8 +384,117 @@ void* thread_work(void* arg)
     pthread_exit(NULL);
 }
 
+void test_bit_enumeration_idx()
+{
+    struct ArrayHash {
+        std::size_t operator()(const std::array<uint16_t, 8>& t) const
+        {
+            uint64_t* dp = (uint64_t*)t.data();
+            return dp[0] ^ dp[1];
+        }
+    };
+
+    struct ArrayEq {
+        bool operator()(const std::array<uint16_t, 8>& lhs, const std::array<uint16_t, 8>& rhs) const
+        {
+            return memcmp(lhs.data(), rhs.data(), sizeof(uint16_t) * 8) == 0;
+        }
+    };
+
+    std::unordered_set<std::array<uint16_t, 8>, ArrayHash, ArrayEq> generated_faults;
+    uint64_t n = 6;
+    uint64_t r = 3;
+    uint64_t calc_ncr = nCr(n, r);
+    for (uint64_t idx = 0; idx < calc_ncr; idx++) {
+        if (!generated_faults.insert(bit_position_enumeration_idx_ncr(n, r, idx)).second) {
+            errorf("duplicate insertion\n");
+        }
+    }
+    printf("%lu of %lu entries created\n", generated_faults.size(), calc_ncr);
+    if (generated_faults.size() != calc_ncr) {
+        errorf("mismatch\n");
+    }
+    std::unordered_set<std::array<uint16_t, 8>, ArrayHash, ArrayEq>::iterator gf_iter = generated_faults.begin();
+    for (; gf_iter != generated_faults.end(); gf_iter++) {
+        for (size_t i = 0; i < r; i++) {
+            if ((*gf_iter)[i] > n - 1) {
+                errorf("out of range bit idx found\n");
+            }
+            for (size_t j = 0; j < r; j++) {
+                if (i == j) {
+                    continue;
+                }
+                if ((*gf_iter)[i] == (*gf_iter)[j]) {
+                    errorf("duplicate bit idx found\n");
+                }
+            }
+        }
+    }
+    {
+        // initialize placement
+        std::vector<uint16_t> idx_placer;
+        for (size_t p = 0; p < r; p++) {
+            idx_placer.push_back(p);
+        }
+        while (true) {
+            // use placement here
+            std::array<uint16_t, 8> check;
+            check.fill(UINT16_MAX);
+            for (size_t pi = 0; pi < r; pi++) {
+                check[pi] = idx_placer[pi];
+            }
+            bool not_found = generated_faults.find(check) == generated_faults.end();
+            if (not_found) {
+                errorf("missing combination\n");
+            }
+            // increment placement
+            ssize_t placer_idx = idx_placer.size() - 1;
+            idx_placer[placer_idx] = idx_placer[placer_idx] + 1;
+            if (idx_placer[placer_idx] < n) {
+                continue; // valid generation, go on
+            }
+            // overstepped, need to reset and increment previous placers
+            while (true) {
+                placer_idx--;
+                if (placer_idx < 0) {
+                    break;
+                }
+                idx_placer[placer_idx]++;
+                if (idx_placer[placer_idx] < n && n - idx_placer[placer_idx] >= r - placer_idx) {
+                    break; // valid generation for previous, go on and reset
+                }
+                // previous overstepped too, go back one more
+            }
+            if (placer_idx < 0) {
+                break;
+            }
+            // reset all placers later than the current one
+            placer_idx++;
+            while (placer_idx < idx_placer.size()) {
+                idx_placer[placer_idx] = idx_placer[placer_idx - 1] + 1;
+                placer_idx++;
+            }
+        }
+    }
+    // some test elements, unordered so may look
+    gf_iter = generated_faults.begin();
+    for (size_t i = 0; i < 10; i++) {
+        printf("[%zu]:", i);
+        for (size_t j = 0; j < r; j++) {
+            printf(" %hu", (*gf_iter)[j]);
+        }
+        printf("\n");
+        gf_iter++;
+    }
+}
+
 int main(int argc, char** argv)
 {
+    if (false) {
+        test_bit_enumeration_idx();
+        exit(0);
+    }
+
     bool full_run = false;
     FAIL_MODE fail_mode;
     uint32_t fail_count;

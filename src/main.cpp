@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <array>
 #include <cassert>
 #include <cmath>
@@ -488,10 +489,103 @@ void test_bit_enumeration_idx()
     }
 }
 
+struct inject_simple_result {
+    ECC_DETECTION det_result;
+    uint32_t miscorrection_location;
+};
+
+inject_simple_result inject_with_idx_and_get_result(ECCMethod* method, std::vector<bool>& data, std::vector<bool>& ecc, uint64_t n, uint64_t r, uint64_t i)
+{
+    method->ConstructECC(data, ecc);
+    std::vector<bool> check_data = data;
+    std::vector<bool> check_ecc = ecc;
+    // inject
+    std::array<uint16_t, 8> injection_positions = bit_position_enumeration_idx_ncr(n, r, i);
+    for (size_t doit = 0; doit < r; doit++) {
+        uint16_t pos = injection_positions[doit];
+        if (pos < data.size()) {
+            data[pos] = !data[pos];
+        } else {
+            pos -= data.size();
+            ecc[pos] = !ecc[pos];
+        }
+    }
+    // check
+    ECC_DETECTION res = method->CheckAndCorrect(data, ecc);
+    if (res != ECC_DETECTION_CORRECTED) {
+        return {.det_result = res};
+    }
+    // find miscorrection location
+    for (size_t l = 0; l < n; l++) {
+        size_t pos = l;
+        bool got;
+        bool want;
+        if (pos < data.size()) {
+            got = data[pos];
+            want = check_data[pos];
+        } else {
+            pos -= data.size();
+            got = ecc[pos];
+            want = check_ecc[pos];
+        }
+        if (got != want && std::find(injection_positions.begin(), injection_positions.end(), l) != injection_positions.end()) {
+            return {.det_result = res, .miscorrection_location = (uint32_t)(l)};
+        }
+    }
+    assert(false); // should not really happen I think?
+    errorf("possible\n");
+}
+
+void test_materialization_data_independence()
+{
+    ECCMethod_Hsiao ecc(64, 8);
+    uint32_t data_width = ecc.DataWidth();
+    uint32_t ecc_width = ecc.ECCWidth();
+    uint32_t word_width = data_width + ecc_width;
+
+    std::vector<bool> vec_data;
+    vec_data.resize(data_width);
+    std::vector<bool> vec_ecc;
+    vec_ecc.resize(ecc_width);
+
+    const uint32_t fault_count = 3;
+    const uint64_t bit_combs = nCr(word_width, fault_count);
+
+    for (size_t injection_ctr = 0; injection_ctr < 100; injection_ctr++) {
+        uint64_t injection_idx = noise_get_u64n(injection_ctr, 0, bit_combs);
+        inject_simple_result expected_result;
+        {
+            for (uint32_t i = 0; i < vec_data.size(); i++) {
+                vec_data[i] = 0;
+            }
+            for (uint32_t i = 0; i < vec_ecc.size(); i++) {
+                vec_ecc[i] = 0;
+            }
+            expected_result = inject_with_idx_and_get_result(&ecc, vec_data, vec_ecc, word_width, fault_count, injection_idx);
+        }
+        for (size_t data_ctr = 0; data_ctr < 1000; data_ctr++) {
+            for (uint32_t i = 0; i < vec_data.size(); i++) {
+                vec_data[i] = squirrelnoise5_u64(data_ctr++, 42) & 0b1;
+            }
+            for (uint32_t i = 0; i < vec_ecc.size(); i++) {
+                vec_ecc[i] = 0;
+            }
+            inject_simple_result real_result = inject_with_idx_and_get_result(&ecc, vec_data, vec_ecc, word_width, fault_count, injection_idx);
+            if (real_result.det_result != expected_result.det_result || real_result.miscorrection_location != expected_result.miscorrection_location) {
+                errorf("result mismatch\n");
+            }
+        }
+    }
+}
+
 int main(int argc, char** argv)
 {
     if (false) {
         test_bit_enumeration_idx();
+        exit(0);
+    }
+    if (false) {
+        test_materialization_data_independence();
         exit(0);
     }
 
